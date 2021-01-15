@@ -8,9 +8,9 @@ class VGG(nn.Module):
     https://arxiv.org/pdf/1409.1556.pdf
     https://github.com/pytorch/vision/blob/master/torchvision/models/vgg.py
     '''
-    def __init__(self, conv_layers, num_classes=1000):
+    def __init__(self, cfg, num_classes=1000, batch_norm=False):
         super().__init__()
-        self.conv_layers = conv_layers
+        self.conv_layers = self.make_layers(cfg, batch_norm)
         self.fc_layers = nn.Sequential(
             nn.Linear(512*7*7, 4096),
             nn.ReLU(inplace=True),
@@ -23,36 +23,32 @@ class VGG(nn.Module):
             nn.Linear(4096, num_classes)
         )
 
+    def make_layers(self, cfg, batch_norm=False):
+        layers = []
+        input_channels = 3
+
+        for l in cfg:
+            if l == 'M':
+                layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
+
+            else:
+                l = int(l)
+                layers.append(nn.Conv2d(input_channels, l, kernel_size=3, padding=1))
+
+                if batch_norm:
+                    layers.append(nn.BatchNorm2d(num_features=l))
+
+                layers.append(nn.ReLU(inplace=True))
+                input_channels = l
+
+        return nn.Sequential(*layers)
+
     def forward(self, X, log_softmax=False):
         X = self.conv_layers(X)
         X = self.fc_layers(X)
         if log_softmax:
             X = F.log_softmax(X, dim=1)
         return X
-
-
-def make_layers(cfg, batch_norm=False):
-    '''
-    This is used to build the convolutional layers of a VGG network.
-    '''
-    layers = []
-    input_channels = 3
-
-    for l in cfg:
-        if l == 'M':
-            layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
-
-        else:
-            l = int(l)
-            layers.append(nn.Conv2d(input_channels, l, kernel_size=3, padding=1))
-
-            if batch_norm:
-                layers.append(nn.BatchNorm2d(num_features=l))
-
-            layers.append(nn.ReLU(inplace=True))
-            input_channels = l
-
-    return nn.Sequential(*layers)
 
 cfgs = {
     'A' : [64,     'M', 128,      'M', 256, 256,           'M', 512, 512,           'M', 512, 512,           'M'],
@@ -62,17 +58,17 @@ cfgs = {
 }
 
 def VGG11(bn=False):
-    model = VGG(make_layers(cfgs['A'], bn))
+    model = VGG(cfgs['A'], batch_norm=bn)
     return model
 
 def VGG13(bn=False):
-    model = VGG(make_layers(cfgs['B'], bn))
+    model = VGG(cfgs['B'], batch_norm=bn)
     return model
 
 def VGG16(bn=False):
-    model = VGG(make_layers(cfgs['D'], bn))
+    model = VGG(cfgs['D'], batch_norm=bn)
     return model
 
 def VGG19(bn=False):
-    model = VGG(make_layers(cfgs['E'], bn))
+    model = VGG(cfgs['E'], batch_norm=bn)
     return model
