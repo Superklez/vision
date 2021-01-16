@@ -12,37 +12,32 @@ class AlexNet(nn.Module):
         super().__init__()
         self.conv_layers = nn.Sequential(
             nn.Conv2d(in_channels, 96, kernel_size=11, stride=4, padding=2),
-            nn.BatchNorm2d(num_features=96),
-            nn.MaxPool2d(kernel_size=3, stride=2),
             nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
 
             nn.Conv2d(96, 256, kernel_size=5, padding=2),
-            nn.BatchNorm2d(num_features=256),
-            nn.MaxPool2d(kernel_size=3, stride=2),
             nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
 
             nn.Conv2d(256, 384, kernel_size=3, padding=1),
-            nn.BatchNorm2d(num_features=384),
             nn.ReLU(inplace=True),
 
             nn.Conv2d(384, 384, kernel_size=3, padding=1),
-            nn.BatchNorm2d(num_features=384),
             nn.ReLU(inplace=True),
 
             nn.Conv2d(384, 256, kernel_size=3, padding=1),
-            nn.BatchNorm2d(num_features=256),
+            nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.ReLU(inplace=True),
-
-            nn.Flatten()
         )
+        self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
         self.fc_layers = nn.Sequential(
-            nn.Linear(5*5*256, 4096),
-            nn.BatchNorm1d(num_features=4096),
+            nn.Dropout(),
+
+            nn.Linear(256*6*6, 4096),
             nn.ReLU(inplace=True),
+            nn.Dropout(),
 
             nn.Linear(4096, 4096),
-            nn.BatchNorm1d(num_features=4096),
             nn.ReLU(inplace=True),
 
             nn.Linear(4096, num_classes)
@@ -50,6 +45,8 @@ class AlexNet(nn.Module):
 
     def forward(self, X, log_softmax=False):
         X = self.conv_layers(X)
+        X = self.avgpool(X)
+        X = torch.flatten(X, 1)
         X = self.fc_layers(X)
         if log_softmax:
             X = F.log_softmax(X, dim=1)

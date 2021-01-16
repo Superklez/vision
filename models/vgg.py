@@ -11,6 +11,7 @@ class VGG(nn.Module):
     def __init__(self, conv_layers, num_classes=1000):
         super().__init__()
         self.conv_layers = conv_layers
+        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.fc_layers = nn.Sequential(
             nn.Linear(512*7*7, 4096),
             nn.ReLU(inplace=True),
@@ -25,6 +26,8 @@ class VGG(nn.Module):
 
     def forward(self, X, log_softmax=False):
         X = self.conv_layers(X)
+        X = self.avgpool(X)
+        X = torch.flatten(X, 1)
         X = self.fc_layers(X)
         if log_softmax:
             X = F.log_softmax(X, dim=1)
@@ -38,7 +41,6 @@ def make_layers(cfg, batch_norm=False, input_channels=3):
             layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
 
         else:
-            l = int(l)
             layers.append(nn.Conv2d(input_channels, l, kernel_size=3, padding=1))
 
             if batch_norm:
