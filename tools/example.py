@@ -10,7 +10,9 @@ normalize = transforms.Normalize(
 transform = transforms.Compose([
     transforms.ToPILImage(),
     transforms.Resize(256),
-    transforms.RandomCrop(224)
+    transforms.RandomCrop(224),
+    transforms.ToTensor(),
+    normalize
 ])
 
 train_transform = transforms.Compose([
@@ -34,7 +36,7 @@ test_transform = transforms.Compose([
 ])
 
 dataset = CustomImageDataset(csv_file='train.csv', root_dir='train', transform=transform)
-train_data, val_data = random_split(dataset, [num_test_samples, num_val_samples])
+train_data, val_data = random_split(dataset, [num_train_samples, num_val_samples])
 
 train_loader = DataLoader(train_data, batch_size=64, shuffle=True)
 val_loader = DataLoader(val_data, batch_size=64, shuffle=True)
