@@ -184,3 +184,20 @@ def cellboxes_to_boxes(out, S=7):
         all_bboxes.append(bboxes)
 
     return all_bboxes
+
+def get_mean_std(dataloader):
+    # VAR[X] = E[X**2] - E[X]**2
+    # STD[X] = sqrt(VAR[X])
+    channels_sum = 0
+    channels_squared_sum = 0
+    num_batches = 0
+
+    for data, _ in dataloader:
+        channels_sum += torch.mean(data, dim=[0, 2, 3])
+        channels_squared_sum += torch.mean(data**2, dim=[0, 2, 3])
+        num_batches += 1
+
+    mean = channels_sum / num_batches
+    std = torch.sqrt(channels_squared_sum / num_batches - mean ** 2)
+
+    return mean, std
