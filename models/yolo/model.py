@@ -39,7 +39,7 @@ class CNNBlock(nn.Module):
 
 class YOLOv1(nn.Module):
 
-    def __init__(self, cfg, in_channels=3, *args, **kwargs):
+    def __init__(self, cfg=cfg, in_channels=3, *args, **kwargs):
         super().__init__()
         self.in_channels = in_channels
         self.darknet = self.make_conv_layers(cfg)

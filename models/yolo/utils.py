@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from collections import Counter
 
-def intersection_over_union(bboxes1, bboxes2, bbox_format='corners'):
+def intersection_over_union(bboxes1, bboxes2, bbox_format='midpoint'):
     '''
     Inputs:
     ----------
@@ -44,16 +44,16 @@ def intersection_over_union(bboxes1, bboxes2, bbox_format='corners'):
     x2 = torch.min(box1_x2, box2_x2)
     y2 = torch.min(box1_y2, box2_y2)
 
-    box1_area = torch.abs(torch.mul((box1_x2 - box1_x1), (box1_y2 - box1_y1)))
-    box2_area = torch.abs(torch.mul((box2_x2 - box2_x1), (box2_y2 - box2_y1)))
+    box1_area = torch.abs((box1_x2 - box1_x1) * (box1_y2 - box1_y1))
+    box2_area = torch.abs((box2_x2 - box2_x1) * (box2_y2 - box2_y1))
 
-    intersection = torch.mul((x2 - x1).clamp(0), (y2 - y1).clamp(0))
+    intersection = (x2 - x1).clamp(0) * (y2 - y1).clamp(0)
     union = box1_area + box2_area - intersection + 1e-6
-    iou_val = torch.div(intersection, union)
+    iou_val = intersection / union
 
     return iou_val
 
-def non_max_suppression(bboxes, prob_threshold=0.2, iou_threshold=0.4, bbox_format='corners'):
+def non_max_suppression(bboxes, prob_threshold=0.2, iou_threshold=0.4, bbox_format='midpoint'):
     '''
     Inputs:
     ----------
@@ -80,7 +80,7 @@ def non_max_suppression(bboxes, prob_threshold=0.2, iou_threshold=0.4, bbox_form
 
     return bboxes_nms
 
-def mean_average_precision(pred_bboxes, true_bboxes, num_classes=10, iou_threshold=0.5, bbox_format='corners'):
+def mean_average_precision(pred_bboxes, true_bboxes, iou_threshold=0.5, bbox_format='midpoint', num_classes=20):
     '''
     Calculates the mean average precision.
 
@@ -121,9 +121,11 @@ def mean_average_precision(pred_bboxes, true_bboxes, num_classes=10, iou_thresho
             best_iou = 0
 
             for idx, gt in enumerate(true_img):
-                iou = intersection_over_union(torch.tensor(detection[3:]),
-                                              torch.tensor(gt[3:]),
-                                              bbox_format)
+                iou = intersection_over_union(
+                    torch.tensor(detection[3:]),
+                    torch.tensor(gt[3:]),
+                    bbox_format
+                )
 
                 if iou > best_iou:
                     best_iou = iou
@@ -143,9 +145,9 @@ def mean_average_precision(pred_bboxes, true_bboxes, num_classes=10, iou_thresho
         TP_cumsum = torch.cumsum(TP, dim=0)
         FP_cumsum = torch.cumsum(FP, dim=0)
 
-        precisions = torch.div(TP_cumsum, (TP_cumsum + FP_cumsum + eps))
+        precisions = TP_cumsum / (TP_cumsum + FP_cumsum + eps)
         precisions = torch.cat((torch.tensor([1]), precisions))
-        recalls = torch.div(TP_cumsum, (total_true_bboxes + eps))
+        recalls = TP_cumsum / (total_true_bboxes + eps)
         recalls = torch.cat((torch.tensor([0]), recalls))
 
         avg_precisions.append(torch.trapz(precisions, recalls))
