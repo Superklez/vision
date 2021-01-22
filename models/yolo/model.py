@@ -29,7 +29,7 @@ class CNNBlock(nn.Module):
         super().__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, bias=False, **kwargs)
         self.bn = nn.BatchNorm2d(out_channels)
-        self.lrelu = nn.LeakyReLU(0.1)
+        self.lrelu = nn.LeakyReLU(0.01)
 
     def forward(self, X):
         X = self.conv(X)
@@ -78,7 +78,7 @@ class YOLOv1(nn.Module):
         S, B, C = split_size, num_boxes, num_classes
         block = nn.Sequential(
             nn.Linear(1024*S*S, 496), # originally 4096
-            nn.Dropout(0),
+            nn.Dropout(),
             nn.LeakyReLU(0.1, True),
             nn.Linear(496, S*S*(C+B*5))
         )
