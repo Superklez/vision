@@ -9,7 +9,6 @@ from torch.utils.data import Dataset
 class VOCDataset(Dataset):
 
     def __init__(self, csv_file, img_dir, label_dir, S=7, B=2, C=20, transform=None):
-        super().__init__()
         self.annotations = pd.read_csv(csv_file)
         self.img_dir = img_dir
         self.label_dir = label_dir
@@ -42,25 +41,26 @@ class VOCDataset(Dataset):
 
         label_matrix = torch.zeros((self.S, self.S, self.C + 5 * self.B)) # but only first 5 bboxes are used
         for box in boxes:
-            class_label, x, y, w, h = box.tolist()
+            class_label, x, y, width, height = box.tolist()
             class_label = int(class_label)
-            #assert (type(class_label) == int)
 
-            i = int(self.S * y)
-            j = int(self.S * x)
+            i, j = int(self.S * y), int(self.S * x)
+            x_cell, y_cell = self.S * x - j, self.S * y - i
 
-            x_cell = self.S * x - j
-            y_cell = self.S * y - i
+            width_cell, height_cell = (
+                width * self.S,
+                height * self.S,
+            )
 
-            w_cell = self.S * w
-            h_cell = self.S * h
+            if label_matrix[i, j, 20] == 0:
+                label_matrix[i, j, 20] = 1
 
-            if label_matrix[i, j, self.C] == 0:
-                label_matrix[i, j, self.C] == 1
                 box_coordinates = torch.tensor(
-                    [x_cell, y_cell, w_cell, h_cell]
+                    [x_cell, y_cell, width_cell, height_cell]
                 )
-                label_matrix[i, j, self.C+1:self.C+5] = box_coordinates
+
+                label_matrix[i, j, 21:25] = box_coordinates
+
                 label_matrix[i, j, class_label] = 1
 
         return image, label_matrix
