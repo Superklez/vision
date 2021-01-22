@@ -184,7 +184,7 @@ def visualize_model(model, num_images=6):
 
         visualize_model(model)
     '''
-    #was_training = model.training
+    was_training = model.training
     model.eval()
     images_so_far = 0
     fig = plt.figure()
@@ -208,11 +208,10 @@ def visualize_model(model, num_images=6):
                 imshow(inputs.data[i]) #inputs.cpu().data[i]
 
                 if images_so_far == num_images:
-                    #model.train(mode=was_training)
+                    model.train(mode=was_training)
                     return
 
-        #model.train(mode=was_training)
-        model.train()
+        model.train(mode=was_training)
 
 # For landmark detection
 class LandmarksDataset(Dataset):
