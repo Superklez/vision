@@ -10,7 +10,7 @@ class VOCDataset(Dataset):
 
     def __init__(self, csv_file, img_dir, label_dir, S=7, B=2, C=20, transform=None):
         super().__init__()
-        self.annotations = pd.read_cav(csv_file)
+        self.annotations = pd.read_csv(csv_file)
         self.img_dir = img_dir
         self.label_dir = label_dir
         self.transform = transform

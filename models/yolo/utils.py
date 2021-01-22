@@ -153,7 +153,7 @@ def mean_average_precision(pred_bboxes, true_bboxes, num_classes=10, iou_thresho
     mAP = sum(avg_precisions) / len(avg_precisions)
     return mAP
 
-    def plot_image(image, boxes):
+def plot_image(image, boxes):
 
     im = np.array(image)
     height, width, _ = im.shape
@@ -217,9 +217,10 @@ def get_bboxes(model, loader, prob_threshold=0.2, iou_threshold=0.4, bbox_format
     model.train()
     return all_pred_boxes, all_true_boxes
 
-def convert_cellboxes(predictions, S=7, C=20):
+def convert_cellboxes(predictions, S=7, B=2, C=20):
 
     batch_size = predictions.shape[0]
+    predictions = predictions.reshape(batch_size, S, S, C + 5 * B)
     bboxes1 = predictions[..., C+1:C+5]
     bboxes2 = predictions[..., C+6:C+10]
 
@@ -234,7 +235,7 @@ def convert_cellboxes(predictions, S=7, C=20):
 
     x = 1 / S * (best_bboxes[..., :1] + cell_indices)
     y = 1 / S * (best_bboxes[..., 1:2] + cell_indices.permute(0, 2, 1, 3))
-    wy = 1 / S * best_bboes[..., 2:4]
+    wy = 1 / S * best_bboxes[..., 2:4]
 
     converted_bboxes = torch.cat((x, y, wy), dim=-1)
     predicted_class = predictions[..., :C].argmax(-1).unsqueeze(-1)
@@ -254,6 +255,17 @@ def cellboxes_to_boxes(out, S=7):
 
         for bbox_idx in range(S * S):
             bboxes.append([x.item() for x in converted_pred[ex_idx, bbox_idx, :]])
+
         all_bboxes.append(bboxes)
 
     return all_bboxes
+
+def save_checkpoint(state, filename='my_checkpoint.pth.tar'):
+    torch.save(state, filename)
+    print('Checkpoint saved...')
+
+
+def load_checkpoint(checkpoint, model, optimizer):
+    model.load_state_dict(checkpoint["state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer"])
+    print('Checkpoint loaded...')
