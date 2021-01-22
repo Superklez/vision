@@ -97,7 +97,7 @@ class ResNet(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512*block.expansion, num_classes)
 
-    def forward(self, X, log_softmax=False):
+    def forward(self, X):
         X = self.conv1(X)
         X = self.bn1(X)
         X = self.relu(X)
@@ -111,9 +111,6 @@ class ResNet(nn.Module):
         X = self.avgpool(X)
         X = torch.flatten(X, 1)
         X = self.fc(X)
-
-        if log_softmax:
-            X = F.log_softmax(X, 1)
 
         return X
 

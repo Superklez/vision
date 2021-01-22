@@ -34,9 +34,8 @@ class LeNet5(nn.Module):
             nn.Linear(84, num_classes)
         )
 
-    def forward(self, X, log_softmax=False):
+    def forward(self, X):
         X = self.conv_layers(X)
         X = self.fc_layers(X)
-        if log_softmax:
-                X = F.log_softmax(X, dim=1)
+        
         return X

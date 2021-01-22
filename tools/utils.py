@@ -2,12 +2,112 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+
 import torch
+import time
+import copy
 
 from PIL import  Image
 from skimage import io
 from torch.utils.data import Dataset, random_split
 
+def train_model(model, criterion, optimizer, scheduler=None, epochs=10):
+    '''
+    Train model.
+
+    Inputs:
+    ----------
+        model:
+        criterion:
+        optimizer:
+        scheduler (optional):
+        epochs (int): Number of epochs for training.
+
+    Outputs:
+    ----------
+        model: Trained model of input model.
+
+    Recommended use:
+    ----------
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        losses = {'train':[], 'val':[]}
+        accuracies = {'train':[], 'val':[]}
+
+        dataloaders = {'train':train_loader, 'val':val_loader}
+        dataset_sizes = {phase: len(dataloaders[phase].dataset) for phase in ['train', 'val']}
+
+        model = Net()
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=5)
+
+        model = train_model(model, criterion, optimizer, scheduler, epochs=20)
+    '''
+    start_time = time.time()
+
+    best_model_wts = copy.deepcopy(model.state_dict())
+    best_acc = 0
+
+    for epoch in range(epochs):
+        epoch += 1
+        print('Epoch {}/{}'.format(epoch, epochs))
+        print('-' * 10)
+
+        for phase in ['train', 'val']:
+            if phase == 'train':
+                model.train()
+
+            elif phase == 'val':
+                model.eval()
+
+            running_loss = 0
+            running_corrects = 0
+
+            for b, (inputs, labels) in enumerate(dataloaders[phase]):
+                #inputs = inputs.to(device)
+                #labels = labels.to(device)
+                optimizer.zero_grad()
+
+                with torch.set_grad_enabled(phase == 'train'):
+                    outputs = model(inputs)
+                    loss = criterion(outputs, labels)
+
+                    _, preds = torch.max(outputs, 1)
+
+                    if phase == 'train':
+                        loss.backward()
+                        optimizer.step()
+
+                running_loss += loss.item() * inputs.size(0)
+                running_corrects += torch.sum(preds == labels.data)
+
+            if phase == 'train':
+                if scheduler:
+                    scheduler.step(loss)
+
+            epoch_loss = running_loss / dataset_sizes[phase]
+            epoch_acc = running_corrects.double() / dataset_sizes[phase]
+
+            losses[phase].append(epoch_loss)
+            accuracies[phase].append(epoch_acc)
+
+            print(f'{phase.capitalize()} Loss: {epoch_loss:.4f}, Accuracy: {epoch_acc * 100:.2f}%')
+
+            if phase == 'val' and epoch_acc > best_acc:
+                    best_acc = epoch_acc
+                    best_model_wts = copy.deepcopy(model.state_dict())
+
+        print()
+
+    time_elapsed = time.time() - start_time
+
+    print(f'Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
+    print(f'Best Validation Acc: {best_acc * 100:.2f}')
+
+    return model
+
+# For image classification
 class CustomImageDataset(Dataset):
     '''
     Custom Image Dataset
@@ -37,14 +137,84 @@ class CustomImageDataset(Dataset):
 
         return (image, label)
 
-def show_landmarks(image, landmarks):
+def imshow(image, title=None, normalize=False):
     '''
-    Show image with landmarks.
+    Imshow for Tensor. Ideal for displaying training images.
+
+    Recommended use:
+    ----------
+        inputs, classes = next(iter(dataloaders['train']))
+        out = torchvision.utils.make_grid(inputs)
+        imshow(out, title=[class_names[x] for x in classes])
     '''
+    image = image.numpy().transpose((1, 2, 0))
+
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+
+    if normalize:
+        image = std * image + mean
+
+    image = np.clip(image, 0, 1)
+
     plt.imshow(image)
-    plt.scatter(landmarks)
+
+    if title is not None:
+        plt.title(title)
+
     plt.pause(0.001)
 
+def visualize_model(model, num_images=6):
+    '''
+    Display predictions for few images.
+
+    Inputs:
+    ----------
+        model:
+        num_images (int): Number of images to display.
+
+    Output:
+    ----------
+        Displayed images with predictions as labels.
+
+    Recommended use:
+    ----------
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        class_names = dataset['train'].classes
+
+        visualize_model(model)
+    '''
+    #was_training = model.training
+    model.eval()
+    images_so_far = 0
+    fig = plt.figure()
+
+    with torch.no_grad():
+        for b, (inputs, labels) in enumerate(dataloaders['val']):
+            #inputs = inputs.to(device)
+            #labels = labels.to(device)
+            optimizer.zero_grad()
+
+            outputs = model(inputs)
+            _, preds = torch.max(outputs, 1)
+
+            for i in range(inputs.size()[0]):
+                images_so_far += 1
+
+                ax = plt.subplot(num_images // 2, 2, images_so_far)
+                ax.axis('off')
+                ax.set_title('Predicted: {}'.format(class_names[preds[i]]))
+
+                imshow(inputs.data[i]) #inputs.cpu().data[i]
+
+                if images_so_far == num_images:
+                    #model.train(mode=was_training)
+                    return
+
+        #model.train(mode=was_training)
+        model.train()
+
+# For landmark detection
 class LandmarksDataset(Dataset):
     '''
     [Face] Landmarks Dataset
@@ -80,112 +250,28 @@ class LandmarksDataset(Dataset):
 
         return sample
 
-def plot_image(image, boxes):
-
-    im = np.array(image)
-    height, width, _ = im.shape
-
-    fig, ax = plt.subplots()
-    ax.imshow(im)
-
-    for box in boxes:
-        box = box[2:]
-        assert len(box) == 4, 'box must only contain x, y, w, h dimensions'
-
-        x0 = box[0] - box[2] / 2
-        y0 = box[1] - box[3] / 2
-
-        rect = patches.Rectangle(
-            (x0 * width, y0 * height),
-            box[2] * width,
-            box[3] * height,
-            linewidth = 1,
-            edgecolor = 'r',
-            facecolor = 'none'
-        )
-
-        ax.add_patch(rect)
-
-    plt.show()
-
-def get_bboxes(model, loader, prob_threshold=0.2, iou_threshold=0.4, bbox_format='midpoint'):
-
-    all_pred_boxes = []
-    all_true_boxes = []
-
-    model.eval()
-    train_idx = 0
-
-    for b, data in enumerate(loader):
-        images, labels = data
-        #labels = labels.to(device)
-
-        with torch.no_grad():
-            predictions = model(images)
-
-        batch_size = images.shape[0]
-        pred_bboxes = cellboxes_to_boxes(predictions)
-        true_bboxes = cellboxes_to_boxes(labels)
-
-        for idx in range(batch_size):
-            nms_boxes = non_max_suppression(
-                pred_bboxes[idx], prob_threshold, iou_threshold, bbox_format
-            )
-
-            for nms_box in nms_boxes:
-                all_pred_boxes.append([train_idx] + nms_box)
-
-            for box in true_bboxes[idx]:
-                if box[1] > prob_threshold:
-                    all_true_boxes.append([train_idx] + box)
-
-            train_idx += 1
-
-    model.train()
-    return all_pred_boxes, all_true_boxes
-
-def convert_cellboxes(predictions, S=7, C=20):
-
-    batch_size = predictions.shape[0]
-    bboxes1 = predictions[..., C+1:C+5]
-    bboxes2 = predictions[..., C+6:C+10]
-
-    scores = torch.cat(
-        (predictions[..., C].unsqueeze(0), predictions[..., C+5].unsqueeze(0)), dim=0
-    )
-
-    best_bbox = scores.argmax(0).unsqueeze(-1)
-    best_bboxes = torch.mul(bboxes1, (1 - best_bbox)) + torch.mul(bboxes2, best_bbox)
-
-    cell_indices = torch.arange(S).repeat(batch_size, S, 1).unsqueeze(-1)
-
-    x = 1 / S * (best_bboxes[..., :1] + cell_indices)
-    y = 1 / S * (best_bboxes[..., 1:2] + cell_indices.permute(0, 2, 1, 3))
-    wy = 1 / S * best_bboes[..., 2:4]
-
-    converted_bboxes = torch.cat((x, y, wy), dim=-1)
-    predicted_class = predictions[..., :C].argmax(-1).unsqueeze(-1)
-    best_confidence = torch.max(predictions[..., C], predictions[..., C+5]).unsqueeze(-1)
-    converted_preds = torch.cat((predicted_class, best_confidence, converted_bboxes), dim=-1)
-
-    return converted_preds
-
-def cellboxes_to_boxes(out, S=7):
-
-    converted_pred = convert_cellboxes(out).reshape(out.shape[0], S * S, -1)
-    converted_pred[..., 0] = converted_pred[..., 0].long()
-    all_bboxes = []
-
-    for ex_idx in range(out.shape[0]):
-        bboxes = []
-
-        for bbox_idx in range(S * S):
-            bboxes.append([x.item() for x in converted_pred[ex_idx, bbox_idx, :]])
-        all_bboxes.append(bboxes)
-
-    return all_bboxes
+def show_landmarks(image, landmarks):
+    '''
+    Show image with landmarks.
+    '''
+    plt.imshow(image)
+    plt.scatter(landmarks)
+    plt.pause(0.001)
 
 def get_mean_std(dataloader):
+    '''
+    Determine the mean and standard deviation per channel.
+
+    Inputs:
+    ----------
+        dataloader:
+
+    Outputs:
+    ----------
+        mean (list): List of mean values for RGB channels.
+        std (list): List of standard deviation values for RGB channels.
+    '''
+
     # VAR[X] = E[X**2] - E[X]**2
     # STD[X] = sqrt(VAR[X])
     channels_sum = 0

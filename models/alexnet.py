@@ -43,11 +43,10 @@ class AlexNet(nn.Module):
             nn.Linear(4096, num_classes)
         )
 
-    def forward(self, X, log_softmax=False):
+    def forward(self, X):
         X = self.conv_layers(X)
         X = self.avgpool(X)
         X = torch.flatten(X, 1)
         X = self.fc_layers(X)
-        if log_softmax:
-            X = F.log_softmax(X, dim=1)
+        
         return X
