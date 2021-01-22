@@ -25,11 +25,11 @@ cfg = [
 
 class CNNBlock(nn.Module):
 
-    def __init__(self, in_channels, out_channels, *args, **kwargs):
+    def __init__(self, in_channels, out_channels, **kwargs):
         super().__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, bias=False, *args, **kwargs)
+        self.conv = nn.Conv2d(in_channels, out_channels, bias=False, **kwargs)
         self.bn = nn.BatchNorm2d(out_channels)
-        self.lrelu = nn.LeakyReLU(0.1, True)
+        self.lrelu = nn.LeakyReLU(0.1)
 
     def forward(self, X):
         X = self.conv(X)
@@ -39,11 +39,12 @@ class CNNBlock(nn.Module):
 
 class YOLOv1(nn.Module):
 
-    def __init__(self, in_channels=3, *args, **kwargs):
+    def __init__(self, in_channels=3, **kwargs):
         super().__init__()
+        self.cfg = cfg
         self.in_channels = in_channels
-        self.darknet = self.make_conv_layers(cfg)
-        self.fc_layers = self.make_fc_layers(*args, **kwargs)
+        self.darknet = self.make_conv_layers(self.cfg)
+        self.fc_layers = self.make_fc_layers(**kwargs)
 
     def forward(self, X):
         X = self.darknet(X)
@@ -77,7 +78,7 @@ class YOLOv1(nn.Module):
         S, B, C = split_size, num_boxes, num_classes
         block = nn.Sequential(
             nn.Linear(1024*S*S, 496), # originally 4096
-            nn.Dropout(),
+            nn.Dropout(0),
             nn.LeakyReLU(0.1, True),
             nn.Linear(496, S*S*(C+B*5))
         )
