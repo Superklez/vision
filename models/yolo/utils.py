@@ -72,6 +72,7 @@ def non_max_suppression(bboxes, prob_threshold=0.2, iou_threshold=0.4, bbox_form
     bboxes_nms = []
 
     while bboxes:
+        bbox_main = = bboxes.pop(0)
         bboxes = [bbox for bbox in bboxes if bbox[0] != bbox_main[0]
                   or intersection_over_union(torch.tensor(bbox_main[2:]),
                   torch.tensor(bbox[2:]), bbox_format) < iou_threshold]
@@ -271,3 +272,102 @@ def load_checkpoint(checkpoint, model, optimizer):
     model.load_state_dict(checkpoint["state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer"])
     print('Checkpoint loaded...')
+
+
+# IGNORE THESE
+# FOR STORING ONLY
+#image, labels = next(iter(train_loader))
+#
+#image = image[1, ...]
+#labels = labels[1, ...]
+#
+#image = image[None, ...]
+#labels = labels[None, ...]
+#
+#pred = model(image)
+#
+#batch_size = pred.shape[0]
+#
+#pred_bboxes = cellboxes_to_boxes(pred)
+#true_bboxes = cellboxes_to_boxes(labels)
+#
+#all_pred_boxes = []
+#all_true_boxes = []
+#
+#for idx in range(batch_size):
+#    bboxes = [bbox for bbox in pred_bboxes[idx] if bbox[1] > 0.01]
+#    bboxes = sorted(bboxes, key=lambda x: x[1], reverse=True)
+#    bboxes_nms = []
+#
+#    while bboxes:
+#        bbox_main = bboxes.pop(0)
+#        bboxes = [bbox for bbox in bboxes if bbox[0] != bbox_main[0]
+#                  or intersection_over_union(torch.tensor(bbox_main[2:]),
+#                  torch.tensor(bbox[2:]), 'midpoint') < 0.4]
+#
+#        bboxes_nms.append(bbox_main)
+#
+#
+#    #nms_boxes = non_max_suppression(
+#    #    pred_bboxes[idx], prob_threshold=0.2, iou_threshold=0.4, bbox_format='midpoint'
+#    #)
+#
+#    for nms_box in bboxes_nms:
+#        all_pred_boxes.append([0] + nms_box)
+#
+#    for box in true_bboxes[idx]:
+#        if box[1] > 0.2:
+#            all_true_boxes.append([0] + box)
+#
+##image, labels = next(iter(train_loader))
+#
+#image = image[0, ...]
+#labels = labels[0, ...]
+#
+##image = image[None, ...]
+##labels = labels[None, ...]
+#
+#im = image.permute(1, 2, 0).numpy()
+#
+#fig, ax = plt.subplots()
+#ax.imshow(im)
+#height, width, _ = im.shape
+#
+#for box in all_pred_boxes:
+##for box in subbox[..., 21:25]:
+#    box = box[3:]
+#    assert len(box) == 4, 'box must only contain x, y, w, h dimensions'
+#
+#    x0 = box[0] - box[2] / 2
+#    y0 = box[1] - box[3] / 2
+#
+#    pred_rect = patches.Rectangle(
+#        (x0 * width, y0 * height),
+#        box[2] * width,
+#        box[3] * height,
+#        linewidth = 1,
+#        edgecolor = 'r',
+#        facecolor = 'none'
+#    )
+#
+#for box in all_true_boxes:
+##for box in subbox[..., 21:25]:
+#    box = box[3:]
+#    assert len(box) == 4, 'box must only contain x, y, w, h dimensions'
+#
+#    x0 = box[0] - box[2] / 2
+#    y0 = box[1] - box[3] / 2
+#
+#    true_rect = patches.Rectangle(
+#        (x0 * width, y0 * height),
+#        box[2] * width,
+#        box[3] * height,
+#        linewidth = 1,
+#        edgecolor = 'b',
+#        facecolor = 'none'
+#    )
+#
+#ax.add_patch(pred_rect)
+#ax.add_patch(true_rect)
+#
+#plt.show()
