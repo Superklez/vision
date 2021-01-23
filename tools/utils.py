@@ -65,8 +65,8 @@ def train_model(model, criterion, optimizer, scheduler=None, epochs=10):
             running_corrects = 0
 
             for b, (inputs, labels) in enumerate(dataloaders[phase]):
-                #inputs = inputs.to(device)
-                #labels = labels.to(device)
+                inputs = inputs.to(device)
+                labels = labels.to(device)
                 optimizer.zero_grad()
 
                 with torch.set_grad_enabled(phase == 'train'):
