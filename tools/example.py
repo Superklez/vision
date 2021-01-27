@@ -1,45 +1,64 @@
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from torchvision.transforms import transforms
-from utils import CustomImageDataset
+from utils import TorchvisionDataset, AlbumentationsDataset
 
-normalize = transforms.Normalize(
-    [0.485, 0.456, 0.406],
-    [0.229, 0.224, 0.225]
-)
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
+
+###############################################################################
+### TORCHVISION ###############################################################
+###############################################################################
 
 transform = transforms.Compose([
-    transforms.ToPILImage(),
+    #transforms.ToPILImage(),
     transforms.Resize(256),
     transforms.RandomCrop(224),
     transforms.ToTensor(),
-    normalize
+    transforms.Normalize(
+        mean = [0.485, 0.456, 0.406],
+        std = [0.229, 0.224, 0.225]
+    )
 ])
 
-train_transform = transforms.Compose([
-    transforms.ToPILImage(),
+torchvision_transform = transforms.Compose([
     transforms.Resize(256),
     transforms.RandomCrop(224),
-    transforms.RandomRotation(10),
     #transforms.RandomHorizontalFlip(0.5),
     #transforms.RandomVerticalFlip(0.5),
     transforms.ToTensor(),
     normalize
 ])
 
-test_transform = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.Resize(224),
-    #transforms.Resize(256),
-    #transforms.CenterCrop(224),
-    transforms.ToTensor(),
-    normalize
-])
-
-dataset = CustomImageDataset(csv_file='train.csv', root_dir='train', transform=transform)
+torchvision_dataset = TorchvisionDataset(csv_file='train.csv', root_dir='train', transform=torchvision_transform)
 train_data, val_data = random_split(dataset, [num_train_samples, num_val_samples])
 
 train_loader = DataLoader(train_data, batch_size=64, shuffle=True)
 val_loader = DataLoader(val_data, batch_size=64, shuffle=True)
+
+###############################################################################
+### ALBUMENTATIONS ############################################################
+###############################################################################
+
+albumentations_transform = A.Compose([
+    A.Resize(256, 256),
+    A.RandomCrop(244, 244),
+    #A.HorizontalFlip(),
+    A.Normalize(
+        mean = [0.485, 0.456, 0.406],
+        std = [0.229, 0.224, 0.225]
+    ),
+    ToTensorV2()
+])
+
+albumentations_dataset = AlbumentationsDataset(csv_file='train.csv', root_dir='train', transform=albumentations_transform)
+train_data, val_data = random_split(dataset, [num_train_samples, num_val_samples])
+
+train_loader = DataLoader(train_data, batch_size=64, shuffle=True)
+val_loader = DataLoader(val_data, batch_size=64, shuffle=True)
+
+###############################################################################
+### OTHER STUFF ###############################################################
+###############################################################################
 
 #train_loader = DataLoader(train_data, batch_size=64, shuffle=True)
 #val_loader = DataLoader(val_data, batch_size=64, shuffle=True)

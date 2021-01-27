@@ -3,13 +3,17 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# Used for training
 import torch
 import time
 import copy
 
+# Used for loading custom datasets
+import cv2
 from PIL import  Image
 from skimage import io
-from torch.utils.data import Dataset, random_split
+from torch.utils.data import Dataset
+from torchvision import transforms
 
 def train_model(model, criterion, optimizer, scheduler=None, epochs=10):
     '''
@@ -107,10 +111,14 @@ def train_model(model, criterion, optimizer, scheduler=None, epochs=10):
 
     return model
 
-# For image classification
-class CustomImageDataset(Dataset):
+###############################################################################
+### LOADING CUSTOM DATASETS ###################################################
+###############################################################################
+
+class TorchvisionDataset(Dataset):
     '''
-    Custom Image Dataset
+    Load custom image data using torchvision transformations.
+    For image classification only.
     '''
     def __init__(self, csv_file, root_dir, transform=None):
         '''
@@ -129,13 +137,78 @@ class CustomImageDataset(Dataset):
 
     def __getitem__(self, index):
         image_name = os.path.join(self.root_dir, self.annotations.iloc[index, 0])
-        image = io.imread(image_path)
-        label = torch.tensor(int(self.annotations.iloc[index, 1]))
+        image = io.imread(image_name)
+        #label = torch.tensor(int(self.annotations.iloc[index, 1]))
+        label = int(self.annotations.iloc[index, 1])
 
         if self.transform:
             image = self.trasnform(image)
 
-        return (image, label)
+        return image, label
+
+class AlbumentationsDataset(Dataset):
+    '''
+    Load custom image data using albumentations transformations.
+    For image classification only.
+    '''
+    def __init__(self, csv_file, root_dir, transform=None):
+        self.annotations = pd.read_csv(csv_file)
+        self.root_dir = root_dir
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.annotations)
+
+    def __getitem__(self, index):
+        image_name = os.path.join(self.root_dir, self.annotations.iloc[index, 0])
+        image = cv2.imread(image_name)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        label = int(self.annotations.iloc[index, 1])
+
+        if self.transform:
+            augmented = self.transform(image=image)
+            image = augmented['image']
+
+        return image, label
+
+class LandmarksDataset(Dataset):
+    '''
+    [Face] Landmarks Dataset
+    '''
+    def __init__(self, csv_file, root_dir, transform=None):
+        '''
+        Inputs:
+        ---------
+            csv_file (str): Path to the csv file with annotations.
+            root_dir (str): Directory to images.
+            transform (callable, optional): Optional transformation to data.
+        '''
+        self.landmarks = pd.read_csv(csf_file)
+        self.root_dir = root_dir
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.landmarks)
+
+    def __getitem__(self, index):
+        if torch.is_tensor(index):
+            index = index.tolist()
+
+        image_name = os.path.join(self.root_dir, self.landmarks.iloc[index, 0])
+        image = io.imread(image_name)
+        landmarks = self.landmarks.iloc[index, 1:]
+        landmarks = np.array([landmarks])
+        landmarks = landmarks.astype('float').reshape(-1, 2)
+
+        sample = {'image':image, 'landmarks':landmarks}
+        if self.transform:
+            sample = self.transform(sample)
+
+        return sample
+
+###############################################################################
+### VISUALIZATION #############################################################
+###############################################################################
 
 def imshow(image, title=None, normalize=False):
     '''
@@ -213,42 +286,6 @@ def visualize_model(model, num_images=6):
 
         model.train(mode=was_training)
 
-# For landmark detection
-class LandmarksDataset(Dataset):
-    '''
-    [Face] Landmarks Dataset
-    '''
-    def __init__(self, csv_file, root_dir, transform=None):
-        '''
-        Inputs:
-        ---------
-            csv_file (str): Path to the csv file with annotations.
-            root_dir (str): Directory to images.
-            transform (callable, optional): Optional transformation to data.
-        '''
-        self.landmarks = pd.read_csv(csf_file)
-        self.root_dir = root_dir
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.landmarks)
-
-    def __getitem__(self, index):
-        if torch.is_tensor(index):
-            index = index.tolist()
-
-        image_name = os.path.join(self.root_dir, self.landmarks.iloc[index, 0])
-        image = io.imread(image_name)
-        landmarks = self.landmarks.iloc[index, 1:]
-        landmarks = np.array([landmarks])
-        landmarks = landmarks.astype('float').reshape(-1, 2)
-
-        sample = {'image':image, 'landmarks':landmarks}
-        if self.transform:
-            sample = self.transform(sample)
-
-        return sample
-
 def show_landmarks(image, landmarks):
     '''
     Show image with landmarks.
@@ -256,6 +293,10 @@ def show_landmarks(image, landmarks):
     plt.imshow(image)
     plt.scatter(landmarks)
     plt.pause(0.001)
+
+###############################################################################
+### GET DATASET INFORMATION ###################################################
+###############################################################################
 
 def get_mean_std(dataloader):
     '''
