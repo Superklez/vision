@@ -9,16 +9,16 @@ from albumentations.pytorch import ToTensorV2
 ### TORCHVISION ###############################################################
 ###############################################################################
 
-transform = transforms.Compose([
-    #transforms.ToPILImage(),
-    transforms.Resize(256),
-    transforms.RandomCrop(224),
-    transforms.ToTensor(),
-    transforms.Normalize(
-        mean = [0.485, 0.456, 0.406],
-        std = [0.229, 0.224, 0.225]
-    )
-])
+#transform = transforms.Compose([
+#    #transforms.ToPILImage(),
+#    transforms.Resize(256),
+#    transforms.RandomCrop(224),
+#    transforms.ToTensor(),
+#    transforms.Normalize(
+#        mean = [0.485, 0.456, 0.406],
+#        std = [0.229, 0.224, 0.225]
+#    )
+#])
 
 torchvision_transform = transforms.Compose([
     transforms.Resize(256),
@@ -26,7 +26,10 @@ torchvision_transform = transforms.Compose([
     #transforms.RandomHorizontalFlip(0.5),
     #transforms.RandomVerticalFlip(0.5),
     transforms.ToTensor(),
-    normalize
+    transforms.Normalize(
+        mean = [0.485, 0.456, 0.406],
+        std = [0.229, 0.224, 0.225]
+    )
 ])
 
 torchvision_dataset = TorchvisionDataset(csv_file='train.csv', root_dir='train', transform=torchvision_transform)
