@@ -4,6 +4,7 @@ import torch.nn as nn
 class SuperNet(nn.Module):
     '''
     This network shows how to implement custom weight initialization.
+    Takes in 224x224[x3] images as inputs.
     '''
     def __init__(self, in_channels=3, num_classes=2):
         super().__init__()
@@ -14,24 +15,24 @@ class SuperNet(nn.Module):
             nn.MaxPool2d(kernel_size=2, stride=2),
 
             nn.Conv2d(16, 32, kernel_size=5, padding=2, bias=False),
-            nn.BatchNorm2d(num_features=6),
+            nn.BatchNorm2d(num_features=32),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
             nn.Conv2d(32, 64, kernel_size=5, padding=2, bias=False),
-            nn.BatchNorm2d(num_features=32),
+            nn.BatchNorm2d(num_features=64),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
             nn.Conv2d(64, 64, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=32),
+            nn.BatchNorm2d(num_features=64),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2)
         )
-        self.avgpool = nn.AvgPool2d((28, 28))
+        self.avgpool = nn.AvgPool2d((14, 14))
 
         self.fc_layers = nn.Sequential(
-            nn.Linear(64*28*28, 120),
+            nn.Linear(64*14*14, 120),
             nn.ReLU(inplace=True),
             nn.Dropout(p=0.5),
 
