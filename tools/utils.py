@@ -132,7 +132,7 @@ class TorchvisionDataset(Dataset):
         self.root_dir = root_dir
         self.transform = transform
 
-    def __lenl__(self):
+    def __len__(self):
         return len(self.annotations)
 
     def __getitem__(self, index):
