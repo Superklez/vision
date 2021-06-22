@@ -10,9 +10,9 @@ class VGG(nn.Module):
     '''
     def __init__(self, conv_layers, num_classes=1000):
         super().__init__()
-        self.conv_layers = conv_layers
+        self.features = conv_layers
         self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
-        self.fc_layers = nn.Sequential(
+        self.classifier = nn.Sequential(
             nn.Linear(512*7*7, 4096),
             nn.ReLU(inplace=True),
             nn.Dropout(p=0.5),
@@ -24,13 +24,12 @@ class VGG(nn.Module):
             nn.Linear(4096, num_classes)
         )
 
-    def forward(self, X):
-        X = self.conv_layers(X)
-        X = self.avgpool(X)
-        X = torch.flatten(X, 1)
-        X = self.fc_layers(X)
-
-        return X
+    def forward(self, x):
+        x = self.features(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x)
+        x = self.classifier(x)
+        return x
 
 def make_layers(cfg, batch_norm=False, input_channels=3):
     layers = []
@@ -40,7 +39,8 @@ def make_layers(cfg, batch_norm=False, input_channels=3):
             layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
 
         else:
-            layers.append(nn.Conv2d(input_channels, l, kernel_size=3, padding=1))
+            layers.append(nn.Conv2d(input_channels, l, kernel_size=3,
+                padding=1))
 
             if batch_norm:
                 layers.append(nn.BatchNorm2d(num_features=l))

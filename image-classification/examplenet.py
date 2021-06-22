@@ -8,7 +8,7 @@ class SuperNet(nn.Module):
     '''
     def __init__(self, in_channels=3, num_classes=2):
         super().__init__()
-        self.conv_layers = nn.Sequential(
+        self.features = nn.Sequential(
             nn.Conv2d(in_channels, 16, kernel_size=7, padding=3, bias=False),
             nn.BatchNorm2d(num_features=16),
             nn.ReLU(inplace=True),
@@ -31,7 +31,7 @@ class SuperNet(nn.Module):
         )
         self.avgpool = nn.AvgPool2d((14, 14))
 
-        self.fc_layers = nn.Sequential(
+        self.classifier = nn.Sequential(
             nn.Linear(64*14*14, 120),
             nn.ReLU(inplace=True),
             nn.Dropout(p=0.5),
@@ -45,12 +45,12 @@ class SuperNet(nn.Module):
 
         self.initialize_weights()
 
-    def forward(self, X):
-        X = self.conv_layers(X)
-        X = self.avgpool(X)
-        X = torch.flatten(X, 1)
-        X = self.fc_layers(X)
-        return X
+    def forward(self, x):
+        x = self.features(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x)
+        x = self.classifier(x)
+        return x
 
     def initialize_weights(self):
         for m in self.modules():

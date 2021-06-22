@@ -19,6 +19,16 @@ from torchvision import transforms
 import pydicom
 from pydicom.pixel_data_handlers.util import apply_voi_lut
 
+normalize = transforms.Normalize(
+    [0.485, 0.456, 0.406],
+    [0.229, 0.224, 0.225]
+)
+
+inv_normalize = transforms.Normalize(
+    [-0.485/0.229, -0.456/0.224, -0.406/0.225],
+    [1/0.229, 1/0.224, 1/0.225]
+)
+
 def train_model(model, criterion, optimizer, scheduler=None, epochs=10):
     '''
     Train model.
@@ -187,7 +197,7 @@ class LandmarksDataset(Dataset):
             root_dir (str): Directory to images.
             transform (callable, optional): Optional transformation to data.
         '''
-        self.landmarks = pd.read_csv(csf_file)
+        self.landmarks = pd.read_csv(csv_file)
         self.root_dir = root_dir
         self.transform = transform
 
