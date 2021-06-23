@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-class SuperNet(nn.Module):
+class ExampleNet(nn.Module):
     '''
     This network shows how to implement custom weight initialization.
     Takes in 224x224[x3] images as inputs.
