@@ -8,9 +8,10 @@ class VGG(nn.Module):
     https://arxiv.org/pdf/1409.1556.pdf
     https://github.com/pytorch/vision/blob/master/torchvision/models/vgg.py
     '''
-    def __init__(self, conv_layers, num_classes=1000):
+    def __init__(self, in_channels:int, cfg:list, num_classes=1000,
+        batch_norm:bool=False):
         super().__init__()
-        self.features = conv_layers
+        self.features = self._make_layers(in_channels, cfg, batch_norm)
         self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.classifier = nn.Sequential(
             nn.Linear(512*7*7, 4096),
@@ -27,28 +28,28 @@ class VGG(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = self.avgpool(x)
-        x = torch.flatten(x)
+        x = torch.flatten(x, 1)
         x = self.classifier(x)
         return x
 
-def make_layers(cfg, batch_norm=False, input_channels=3):
-    layers = []
+    def _make_layers(self, in_channels:int, cfg:list, batch_norm=False):
+        layers = []
 
-    for l in cfg:
-        if l == 'M':
-            layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
+        for l in cfg:
+            if l == 'M':
+                layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
 
-        else:
-            layers.append(nn.Conv2d(input_channels, l, kernel_size=3,
-                padding=1))
+            else:
+                layers.append(nn.Conv2d(in_channels, l, kernel_size=3,
+                    padding=1))
 
-            if batch_norm:
-                layers.append(nn.BatchNorm2d(num_features=l))
+                if batch_norm:
+                    layers.append(nn.BatchNorm2d(num_features=l))
 
-            layers.append(nn.ReLU(inplace=True))
-            input_channels = l
+                layers.append(nn.ReLU(inplace=True))
+                in_channels = l
 
-    return nn.Sequential(*layers)
+        return nn.Sequential(*layers)
 
 cfgs = {
     'A' : [64,     'M', 128,      'M', 256, 256,           'M', 512, 512,           'M', 512, 512,           'M'],
@@ -57,18 +58,18 @@ cfgs = {
     'E' : [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M']
 }
 
-def VGG11(nc=1000, bn=False):
-    model = VGG(make_layers(cfgs['A'], bn), nc)
+def VGG11(in_channels:int=3, num_classes:int=1000, batch_norm:bool=False):
+    model = VGG(in_channels, cfgs['A'], num_classes, batch_norm)
     return model
 
-def VGG13(nc=1000, bn=False):
-    model = VGG(make_layers(cfgs['B'], bn), nc)
+def VGG13(in_channels:int=3, num_classes:int=1000, batch_norm:bool=False):
+    model = VGG(in_channels, cfgs['B'], num_classes, batch_norm)
     return model
 
-def VGG16(nc=1000, bn=False):
-    model = VGG(make_layers(cfgs['D'], bn), nc)
+def VGG16(in_channels:int=3, num_classes:int=1000, batch_norm:bool=False):
+    model = VGG(in_channels, cfgs['D'], num_classes, batch_norm)
     return model
 
-def VGG19(nc=1000, bn=False):
-    model = VGG(make_layers(cfgs['E'], bn), nc)
+def VGG19(in_channels:int=3, num_classes:int=1000, batch_norm:bool=False):
+    model = VGG(in_channels, cfgs['E'], num_classes, batch_norm)
     return model
